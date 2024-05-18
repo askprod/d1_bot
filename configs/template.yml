@@ -1,0 +1,9 @@
+os_username: admin
+auto_rally: true
+auto_vote: false
+claim_speed: slow
+browser_choice: firefox
+firefox_config:
+  profile_name: default
+chrome_config:
+  profile_name: default
