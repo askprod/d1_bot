@@ -2,6 +2,8 @@ Work in progress
 
 TODO:
   - Global
+    - Rename folder configs to config
+    - Namespace ruby files and use inheritance
     - Display config properly in prompt instead instead of just puts
     - Handle when process is exited/browser is closed to properly kill everything
     - Reload tab/browser if no message has been received in x minutes
@@ -20,3 +22,6 @@ TODO:
     - Add box for current session claimed $GEMS and $OLE and update in realtime
     - Add message for CTRL + C to exit next to chat
     - Scrap and add name of current space above the chat box
+
+NICE TO HAVE
+  - Send a message in chat at random intervals (with AI ? lol)
