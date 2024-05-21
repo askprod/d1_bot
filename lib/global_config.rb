@@ -62,15 +62,14 @@ class GlobalConfig
       prompt_username
       prompt_auto_rally
       prompt_claim_speed
+      prompt_websocket_port
       prompt_browser_choice
       set_browser_config
       prompt_browser_config
       write_config_to_file
-      launch_browser
       launch_driver
     else
       set_browser_config
-      launch_browser
       launch_driver
     end
   end
@@ -108,13 +107,24 @@ class GlobalConfig
   def prompt_claim_speed
     puts "\n"
     puts "Available claim speeds: "
-    puts "  1. #{'Slow'.colorize(:green)} (200ms)"
-    puts "  2. #{'Correct'.colorize(:yellow)} (100ms)"
-    puts "  3. #{'Blazing Fast'.colorize(:red)} (< 50ms)"
+    puts "  1. #{'Slow'.colorize(:green)} (500ms)"
+    puts "  2. #{'Correct'.colorize(:yellow)} (250ms)"
+    puts "  3. #{'Blazing Fast'.colorize(:red)} (< 100ms)"
     puts "\n"
     print "At what speed would you like to claim airdops when they appear? (the slower the less obvious): "
     parse_toggle_choice(:prompt_claim_speed, possible_choices: ["1", "2", "3"])
-    @config["claim_speed"] = choice_to_int
+    @config["claim_speed"] = choice_to_speed
+    puts @config
+  end
+
+  def prompt_websocket_port
+    puts "\n"
+    puts "Choose your port for the local Websocket instance."
+    puts "If you are running multiple instances of this code, make sure they are different everytime."
+    print "Enter your port (default: 8080): "
+    port = gets.chomp
+    return prompt_websocket_port unless valid_websocket_port?(port)
+    @config["websocket_port"] = port
   end
 
   def prompt_browser_choice
@@ -127,10 +137,6 @@ class GlobalConfig
     parse_toggle_choice(:prompt_browser_choice)
     return @config["browser_choice"] = "chrome" if choice_to_boolean.eql? true
     raise "No browser chosen."
-  end
-
-  def launch_browser
-    @current_browser.launch_browser
   end
 
   def set_browser_config
@@ -180,8 +186,22 @@ class GlobalConfig
     }[@choice.to_sym]
   end
 
+  def choice_to_speed
+    puts @choice
+    {
+      1 => "80",
+      2 => "250",
+      3 => "500"
+    }[@choice.to_i]
+  end
+
   def choice_to_int
     return @choice.to_i if @choice.to_i.is_a? Integer
+  end
+
+  def valid_websocket_port?(port)
+    port_regex = /\A([0-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\z/
+    !!(port.to_s =~ port_regex)
   end
 
   def translate_os(os)

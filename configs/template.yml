@@ -1,7 +1,8 @@
 os_username: admin
 auto_rally: true
 auto_vote: false
-claim_speed: slow
+claim_speed: "250"
+websocket_port: "8080"
 browser_choice: firefox
 firefox_config:
   profile_name: default

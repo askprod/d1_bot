@@ -7,36 +7,78 @@ const isValidNode = (node) => {
   );
 };
 
-// Claim airdrop from element
-const claimAirdrop = (element) => {
-  element.click();
+const setNodeDetails = (node) => {
+  let node_details = {};
+  const airdropDiv = node.querySelector(".airdrop");
+  const contentNode = node.querySelector('.msg-content .content');
+  const nameNode = node.querySelector('.name');
+  const timeNode = node.querySelector('.time');
+  const contentText = contentNode ? contentNode.innerText.trim() : "";
+  const nameMsg = nameNode ? nameNode.innerText.trim() : "";
+  const timeMsg = timeNode ? timeNode.innerText.trim() : "";
 
-  for (let i = 0; i < 10; i++) { setTimeout(() => { element.click(); }, i * 50); }
+  node_details.box_type = "chat";
 
-  const node_details = {
-    airdrop: true
-  };
+  if (airdropDiv) {
+    node_details.amount = parseAirdropAmount(airdropDiv);
+
+    if (nameMsg === "Gems Deliver") {
+      node_details.type = "rally_airdrop";
+    } else if (nameMsg === "OLE Deliver") {
+      node_details.type = "ole_airdrop";
+    } else if (node.querySelector('.airdrop')) {
+      node_details.type = "host_airdrop";
+    }
+  } else if (node.querySelector(".css-11b3811")) {
+    node_details.type = "gift";
+  } else {
+    node_details.type = "user_message";
+  }
+
+  node_details.name = nameMsg;
+  node_details.content = contentText;
+  node_details.time = timeMsg;
+
+  console.log("node", node); // debug
+  console.log("node_details", node_details);
 
   return node_details;
 };
 
-// Send chat message
-const sendChatMessage = (node) => {
-  const message = node.querySelector('.msg-content .content').innerText.trim();
-  const name = node.querySelector('.name').innerText.trim();
-  const time = node.querySelector('.time').innerText.trim();
-  const node_details = {
-    airdrop: false,
-    name: name,
-    message: message,
-    time: time
-  };
+const parseAirdropAmount = (div) => {
+  const innerText = div.innerText;
+  const regex = /\d{1,3}(?:,\d{3})*(?:\.\d+)?/;
+  const match = innerText.match(regex);
+  return match ? parseFloat(match[0].replace(/,/g, '')) : "";
+}
 
-  return node_details;
+const clickAirdrop = (div, speed) => {
+  setTimeout(() => {
+    div.click();
+  }, speed);
+}
+
+const checkClaim = (div, websocket) => {
+  setTimeout(() => {
+    let amount_claimed = 0;
+    // Check if the text "Claimed X <any word>" is present
+    const claimedSpan = div.querySelector('span.flow-root');
+    if (claimedSpan) {
+      const claimedText = claimedSpan.textContent.trim();
+      const match = claimedText.match(/Claimed (\d{1,3}(?:,\d{3})*)\s+\w+/);
+      if (match && match[1]) {
+        // Extract the number claimed, removing commas if present
+        amount_claimed = parseInt(match[1].replace(/,/g, ''), 10);
+      }
+    }
+    const data = { box_type: "status", type: "claim_result", amount_claimed: amount_claimed }
+    console.log(data); // debug
+    websocket.send(JSON.stringify(data));
+  }, 5000);
 };
 
 // Start observer
-const startObserver = (chatContainer, observerCallback) => {
+const startObserver = (chatContainer, websocket, observerCallback) => {
   const observer = new MutationObserver(observerCallback);
 
   const options = {
@@ -49,17 +91,21 @@ const startObserver = (chatContainer, observerCallback) => {
 
   // Set interval to disconnect and reconnect the observer every 30 seconds
   setInterval(() => {
-    console.log("Reconnecting observer...\n");
+    websocket.send(JSON.stringify({ type: "status_message", content: "Auto refreshing mutation observer..." }))
     observer.disconnect();
     observer.observe(chatContainer, options);
-  }, 30000);
+  }, 120000);
 
   return observer;
 };
 
 // Initialize observer
-const initializeObserver = (chatContainer, websocket) => {
+const initializeObserver = (chatContainer, websocket, config) => {
   let lastIndex = -1; // Initialize last index variable
+
+  const sendMessage = (message) => {
+    websocket.send(JSON.stringify({ box_type: "status", content: message }));
+  };
 
   const scrollContainer = chatContainer.parentElement.parentElement;
 
@@ -70,22 +116,17 @@ const initializeObserver = (chatContainer, websocket) => {
 
         addedNodes.forEach((node) => {
           if (isValidNode(node)) {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
             const dataIndex = parseInt(node.getAttribute('data-index'));
 
             if (dataIndex > lastIndex) {
-              const airdropElement = node.querySelector('.airdrop');
-              let node_details;
-
-              if (airdropElement) {
-                node_details = claimAirdrop(airdropElement);
-              } else {
-                node_details = sendChatMessage(node);
+              const airdropDiv = node.querySelector(".airdrop");
+              if(airdropDiv) {
+                clickAirdrop(airdropDiv, config.claim_speed);
+                checkClaim(airdropDiv, websocket);
               }
-
-              // Send node_details to WebSocket server
+              const node_details = setNodeDetails(node);
               websocket.send(JSON.stringify(node_details));
-
-              if (scrollContainer) { scrollContainer.scrollTop = scrollContainer.scrollHeight; }
               lastIndex = dataIndex;
             }
           }
@@ -94,15 +135,27 @@ const initializeObserver = (chatContainer, websocket) => {
     });
   };
 
-  // Start the observer
-  startObserver(chatContainer, observerCallback);
+  const startAndObserve = () => {
+    sendMessage("👀 Mutation observer started successfully. Refresh will occur every 10 minutes.");
+    observer.observe(chatContainer, { childList: true, subtree: true });
+  };
+
+  const observer = new MutationObserver(observerCallback);
+
+  startAndObserve();
+
+  setInterval(() => {
+    sendMessage("🔄 Refreshing mutation observer...");
+    observer.disconnect();
+    startAndObserve();
+  }, 600000);
 };
 
+
 // Wrapper to invoke the script from execute_script
-((chatContainer) => {
-  // Initialize WebSocket connection
-  const websocket = new WebSocket('ws://localhost:8080');
+((chatContainer, config) => {
+  const websocket = new WebSocket(`ws://localhost:${config.websocket_port}`);
   websocket.onopen = () => {
-    initializeObserver(chatContainer, websocket);
+    initializeObserver(chatContainer, websocket, config);
   };
-})(arguments[0]);
+})(arguments[0], arguments[1]);

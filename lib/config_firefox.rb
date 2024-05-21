@@ -22,13 +22,9 @@ class ConfigFirefox
   end
 
   def launch_browser
-    puts "\n"
-    puts "🚀 Launching Firefox..."
-    puts "\n"
     options = Selenium::WebDriver::Firefox::Options.new
     options.profile = @config["firefox_config"]["profile_name"]
     @driver = Selenium::WebDriver.for(:firefox, options: options)
-    puts "✅ Firefox launched succesfully."
   end
 
   private
