@@ -31,7 +31,7 @@ class ConfigChrome
     profile_dir = "#{profile_path}/#{@config["chrome_config"]["profile_name"]}"
     options.add_argument("--user-data-dir=#{profile_dir}")
     @driver = Selenium::WebDriver.for(:chrome, options: options)
-    puts "✅ Chrome launched successfully."
+    puts "💥 Chrome launched successfully."
   end
 
   private

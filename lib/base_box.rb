@@ -18,6 +18,11 @@ class BaseBox
     display_content
   end
 
+  def empty_content
+    @messages = []
+    display_content
+  end
+
   def close
     @win.close
   end
@@ -61,11 +66,6 @@ class BaseBox
     window.attron(Curses.color_pair(color_pair)) do
       window.box('|', '-')
     end
-  end
-
-  def empty_content
-    @messages = []
-    display_content
   end
 
   def display_content

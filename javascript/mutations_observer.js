@@ -8,7 +8,6 @@ const isValidNode = (node) => {
 };
 
 const setNodeDetails = (node) => {
-  let node_details = {};
   const airdropDiv = node.querySelector(".airdrop");
   const contentNode = node.querySelector('.msg-content .content');
   const nameNode = node.querySelector('.name');
@@ -17,27 +16,14 @@ const setNodeDetails = (node) => {
   const nameMsg = nameNode ? nameNode.innerText.trim() : "";
   const timeMsg = timeNode ? timeNode.innerText.trim() : "";
 
+  let node_details = {};
+  node_details.id = getIdFromNode(node);
   node_details.box_type = "chat";
-
-  if (airdropDiv) {
-    node_details.amount = parseAirdropAmount(airdropDiv);
-
-    if (nameMsg === "Gems Deliver") {
-      node_details.type = "rally_airdrop";
-    } else if (nameMsg === "OLE Deliver") {
-      node_details.type = "ole_airdrop";
-    } else if (node.querySelector('.airdrop')) {
-      node_details.type = "host_airdrop";
-    }
-  } else if (node.querySelector(".css-11b3811")) {
-    node_details.type = "gift";
-  } else {
-    node_details.type = "user_message";
-  }
-
+  node_details.type = getNodeType(node);
   node_details.name = nameMsg;
   node_details.content = contentText;
   node_details.time = timeMsg;
+  if(airdropDiv) { node_details.amount = parseAirdropAmount(airdropDiv); }
 
   console.log("node", node); // debug
   console.log("node_details", node_details);
@@ -52,30 +38,81 @@ const parseAirdropAmount = (div) => {
   return match ? parseFloat(match[0].replace(/,/g, '')) : "";
 }
 
-const clickAirdrop = (div, speed) => {
+const clickAirdrop = (div, node, websocket, speed) => {
   setTimeout(() => {
     div.click();
   }, speed);
+
+  data = {};
+  data.id = getIdFromNode(node);
+  data.box_type = "status";
+  data.type = "claim_attempt"
+  data.curreny = getCurrencyFromNode(node);
+
+  websocket.send(JSON.stringify(data));
 }
 
-const checkClaim = (div, websocket) => {
+const checkClaim = (div, node, websocket) => {
   setTimeout(() => {
+    let data = {};
     let amount_claimed = 0;
-    // Check if the text "Claimed X <any word>" is present
     const claimedSpan = div.querySelector('span.flow-root');
+
     if (claimedSpan) {
       const claimedText = claimedSpan.textContent.trim();
       const match = claimedText.match(/Claimed (\d{1,3}(?:,\d{3})*)\s+\w+/);
       if (match && match[1]) {
-        // Extract the number claimed, removing commas if present
         amount_claimed = parseInt(match[1].replace(/,/g, ''), 10);
       }
     }
-    const data = { box_type: "status", type: "claim_result", amount_claimed: amount_claimed }
+
+    data.id = getIdFromNode(node);
+    data.box_type = "status";
+    data.type = "claim_result";
+    data.currency = getCurrencyFromNode(node);
+    data.amount_claimed = amount_claimed;
+
     console.log(data); // debug
+
     websocket.send(JSON.stringify(data));
   }, 5000);
 };
+
+const getIdFromNode = (node) => {
+  return node.getAttribute("data-item-index");
+}
+
+const getNodeType = (node) => {
+  let nodeType = "";
+  const airdropDiv = node.querySelector(".airdrop");
+  const nameNode = node.querySelector('.name');
+  const nameMsg = nameNode ? nameNode.innerText.trim() : "";
+
+  if (airdropDiv) {
+    if (nameMsg === "Gems Deliver") {
+      nodeType = "rally_airdrop";
+    } else if (nameMsg === "OLE Deliver") {
+      nodeType = "ole_airdrop";
+    } else if (node.querySelector('.airdrop')) {
+      nodeType = "host_airdrop";
+    }
+  } else if (node.querySelector(".css-11b3811")) {
+    nodeType = "gift";
+  } else {
+    nodeType = "user_message";
+  }
+
+  return nodeType;
+}
+
+const getCurrencyFromNode = (node) => {
+  const type = getNodeType(node);
+  let currency = "";
+  if(type == "ole_airdrop") { currency = "OLE" }
+  if(type == "rally_airdrop") { currency = "GEMS" }
+  if(type == "host_airdrop") { currency = "GEMS" }
+  return currency;
+}
 
 // Start observer
 const startObserver = (chatContainer, websocket, observerCallback) => {
@@ -122,8 +159,8 @@ const initializeObserver = (chatContainer, websocket, config) => {
             if (dataIndex > lastIndex) {
               const airdropDiv = node.querySelector(".airdrop");
               if(airdropDiv) {
-                clickAirdrop(airdropDiv, config.claim_speed);
-                checkClaim(airdropDiv, websocket);
+                clickAirdrop(airdropDiv, node, websocket, config.claim_speed);
+                checkClaim(airdropDiv, node, websocket);
               }
               const node_details = setNodeDetails(node);
               websocket.send(JSON.stringify(node_details));

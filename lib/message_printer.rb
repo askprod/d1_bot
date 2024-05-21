@@ -27,20 +27,20 @@ class MessagePrinter
     case @data["type"]
     when "rally_airdrop"
       add_chat_box_message(
-        name: "💎💎💎💎💎 #{@data["amount"]} $GEMS FROM RALLY 💎💎💎💎💎",
+        name: "💎💎💎💎💎 #{@data["amount"]} $GEMS FROM RALLY ##{@data["id"]} 💎💎💎💎💎",
         name_color: 6,
         time_color: 6
       )
     when "ole_airdrop"
       add_chat_box_message(
-        name: "🔮🔮🔮🔮🔮 #{@data["amount"]} $OLE 🔮🔮🔮🔮🔮",
+        name: "🔮🔮🔮🔮🔮 #{@data["amount"]} $OLE ##{@data["id"]} 🔮🔮🔮🔮🔮",
         name_color: 5,
         time_color: 5
       )
       @chat_box.add_message( 5)
     when "host_airdrop"
       add_chat_box_message(
-        name: "💎💎💎💎💎 #{@data["amount"]} $GEMS FROM HOST 💎💎💎💎💎",
+        name: "💎💎💎💎💎 #{@data["amount"]} $GEMS FROM HOST ##{@data["id"]} 💎💎💎💎💎",
         name_color: 6,
         time_color: 6
       )
@@ -59,20 +59,29 @@ class MessagePrinter
 
   def handle_status_message
     case @data["type"]
-    when "claim_ongoing"
-      # TODO
+    when "claim_attempt"
+      icons = @data["currency"].eql? "OLE" ? "🔮" : "💎"
+
+      add_status_box_message(
+        content: "😰 #{icons} ATTEMPTING TO CLAIM ##{@data["id"]}... #{icons}",
+        time_color: 2,
+        content_color: 2
+      )
     when "claim_result"
       if @data["amount"].to_i.eql? 0
         add_status_box_message(
-          content: "😔😔😔 UNSUCCESSFUL CLAIM, somebody got here before you... 😔😔😔",
-          time_color: 6,
-          content_color: 6
+          content: "😔 UNSUCCESSFUL CLAIM FOR ##{@data["id"]}",
+          time_color: 2,
+          content_color: 2
         )
       else
+        color = @data["currency"].eql? "OLE" ? 5 : 6
+        icons = @data["currency"].eql? "OLE" ? "🔮" : "💎"
+
         add_status_box_message(
-          content: "🚀🚀🚀 SUCCESSFUL CLAIM | Claimed #{@data["amount"]} 🚀🚀🚀",
-          time_color: 6,
-          content_color: 6
+          content: "🥳 #{icons} ##{@data["id"]} | CLAIMED #{@data["amount"]}$##{@data["currency"]} #{icons}",
+          time_color: color,
+          content_color: color
         )
       end
     else
