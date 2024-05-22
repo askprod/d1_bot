@@ -25,8 +25,8 @@ const setNodeDetails = (node) => {
   node_details.time = timeMsg;
   if(airdropDiv) { node_details.amount = parseAirdropAmount(airdropDiv); }
 
-  console.log("node", node); // debug
-  console.log("node_details", node_details);
+  console.log("setNodeDetails node", node); // debug
+  console.log("setNodeDetails node_details", node_details);
 
   return node_details;
 };
@@ -53,7 +53,9 @@ const clickAirdrop = (div, node, websocket, speed) => {
 }
 
 const checkClaim = (div, node, websocket) => {
-  setTimeout(() => {
+  let checkTimeOut;
+
+  checkTimeOut = setTimeout(() => {
     let data = {};
     let amount_claimed = 0;
     const claimedSpan = div.querySelector('span.flow-root');
@@ -63,6 +65,8 @@ const checkClaim = (div, node, websocket) => {
       const match = claimedText.match(/Claimed (\d{1,3}(?:,\d{3})*)\s+\w+/);
       if (match && match[1]) {
         amount_claimed = parseInt(match[1].replace(/,/g, ''), 10);
+        console.log("checkClaim found amount!", amount_claimed); // debug
+        clearTimeout(checkTimeOut);
       }
     }
 
@@ -72,10 +76,10 @@ const checkClaim = (div, node, websocket) => {
     data.currency = getCurrencyFromNode(node);
     data.amount_claimed = amount_claimed;
 
-    console.log(data); // debug
+    console.log("checkClaim data", data); // debug
 
     websocket.send(JSON.stringify(data));
-  }, 5000);
+  }, 15000);
 };
 
 const getIdFromNode = (node) => {

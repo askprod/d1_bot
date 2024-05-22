@@ -21,35 +21,12 @@ class Driver
   end
 
   def launch
-    @wait = Selenium::WebDriver::Wait.new(timeout: SELENIUM_WAIT_TIMEOUT)
-
     setup_signal_traps
+    initialize_selenium_wait_timer
     initialize_curses_boxes
-
-    print_status_message("⌛ Starting Websocket server on port #{@config["websocket_port"]}...")
-    sleep(3)
-
-    initialize_web_socket
-
-    print_status_message("⌛ Launching browser...")
-    sleep(3)
-
     initialize_browser
-
-    print_status_message("💥 Firefox launched succesfully.")
-
-    @driver.get DISTRICT_ONE_MAIN_URL
-
-    print_status_message("💥 Navigated to #{DISTRICT_ONE_MAIN_URL}")
-    sleep(1)
-    print_status_message("⏱️ Program will exit in 60 seconds if no action is done.")
-    sleep(1)
-    print_status_message("🔓 Connect your wallet to login to district.io.")
-    sleep(1)
-    print_status_message("🎙️ Once ready, go to the 'LIVE' tab.")
-    sleep(1)
-    print_status_message("⌛ Waiting for the 'LIVE' tab...")
-
+    navigate_and_wait_for_tab
+    initialize_web_socket
     initialize_live_tab
     initialize_threads
   ensure
@@ -64,13 +41,35 @@ class Driver
   end
 
   def initialize_browser
+    print_status_message("⌛ Launching browser...")
+    sleep(3)
     @browser.launch_browser
     @driver = @browser.driver
     @browser_initialized = true
+    print_status_message("💥 Firefox launched succesfully.")
+  end
+
+  def navigate_and_wait_for_tab
+    @driver.get DISTRICT_ONE_MAIN_URL
+    print_status_message("💥 Navigated to #{DISTRICT_ONE_MAIN_URL}")
+    sleep(1)
+    print_status_message("⏱️ Program will exit in 60 seconds if no action is done.")
+    sleep(1)
+    print_status_message("🔓 Connect your wallet to login to district.io.")
+    sleep(1)
+    print_status_message("🎙️ Once ready, go to the 'LIVE' tab.")
+    sleep(1)
+    print_status_message("⌛ Waiting for the 'LIVE' tab...")
+  end
+
+  def initialize_selenium_wait_timer
+    @wait = Selenium::WebDriver::Wait.new(timeout: SELENIUM_WAIT_TIMEOUT)
   end
 
   def initialize_web_socket
-    @websocket_instance = WebSocketServer.run(@config["websocket_port"], @message_printer)
+    print_status_message("⌛ Starting Websocket server on port #{@config["websocket_port"]}...")
+    sleep(5)
+    @websocket = WebSocketServer.run(@config["websocket_port"], @message_printer)
     @websocket_initialized = true
   end
 
@@ -121,7 +120,7 @@ class Driver
 
     threads << Thread.new do
       loop do
-        sleep(1200)
+        sleep(1800)
         refresh_browser if should_refresh_browser?
       end
     end
@@ -181,12 +180,12 @@ class Driver
   end
 
   def stop_execution
-    EM.stop                   if EM.reactor_running?
-    close_boxes               if curses_boxes_initialized?
+    EM.stop           if EM.reactor_running?
+    close_boxes       if curses_boxes_initialized?
     puts "🚫 Gracefully stopping..."
     puts "\n"
-    @driver.quit              if browser_initialized?
-    @websocket_instance.stop  if websocket_initialized?
+    @websocket.stop   if websocket_initialized?
+    @driver.quit      if browser_initialized?
     exit
   end
 
@@ -198,10 +197,12 @@ class Driver
   end
 
   def refresh_browser
-    print_status_message("💀 No message received in 20 minutes!")
+    print_status_message("💀 No chat message received in 30 minutes!")
     print_status_message("⌛ Refreshing page and scripts...")
     @chat_box.empty_content
     @driver.navigate.refresh
+    @websocket.stop if @websocket
+    initialize_web_socket
     initialize_live_tab
   end
 

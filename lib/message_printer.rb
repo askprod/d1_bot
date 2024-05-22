@@ -9,9 +9,9 @@ class MessagePrinter
   end
 
   def print_message(data)
-    @data = JSON.parse(data, symbolize_keys: true)
+    @data = JSON.parse(data, symbolize_names: true)
 
-    case @data["box_type"]
+    case @data[:box_type]
     when "info"
       # TODO
     when "status"
@@ -24,23 +24,23 @@ class MessagePrinter
   def handle_chat_message
     set_last_chat_message_at
 
-    case @data["type"]
+    case @data[:type]
     when "rally_airdrop"
       add_chat_box_message(
-        name: "💎💎💎💎💎 #{@data["amount"]} $GEMS FROM RALLY ##{@data["id"]} 💎💎💎💎💎",
+        name: "💎💎💎💎💎 #{@data[:amount]} $GEMS FROM RALLY ##{@data[:id]} 💎💎💎💎💎",
         name_color: 6,
         time_color: 6
       )
     when "ole_airdrop"
       add_chat_box_message(
-        name: "🔮🔮🔮🔮🔮 #{@data["amount"]} $OLE ##{@data["id"]} 🔮🔮🔮🔮🔮",
+        name: "🔮🔮🔮🔮🔮 #{@data[:amount]} $OLE ##{@data[:id]} 🔮🔮🔮🔮🔮",
         name_color: 5,
         time_color: 5
       )
       @chat_box.add_message( 5)
     when "host_airdrop"
       add_chat_box_message(
-        name: "💎💎💎💎💎 #{@data["amount"]} $GEMS FROM HOST ##{@data["id"]} 💎💎💎💎💎",
+        name: "💎💎💎💎💎 #{@data[:amount]} $GEMS FROM HOST ##{@data[:id]} 💎💎💎💎💎",
         name_color: 6,
         time_color: 6
       )
@@ -58,28 +58,28 @@ class MessagePrinter
   end
 
   def handle_status_message
-    case @data["type"]
+    case @data[:type]
     when "claim_attempt"
-      icons = @data["currency"].eql? "OLE" ? "🔮" : "💎"
+      icons = @data[:currency].eql?("OLE") ? "🔮" : "💎"
 
       add_status_box_message(
-        content: "😰 #{icons} ATTEMPTING TO CLAIM ##{@data["id"]}... #{icons}",
+        content: "😰 #{icons} ATTEMPTING TO CLAIM ##{@data[:id]}... #{icons}",
         time_color: 2,
         content_color: 2
       )
     when "claim_result"
-      if @data["amount"].to_i.eql? 0
+      if @data[:amount].to_i.eql? 0
         add_status_box_message(
-          content: "😔 UNSUCCESSFUL CLAIM FOR ##{@data["id"]}",
+          content: "😔 UNSUCCESSFUL CLAIM FOR ##{@data[:id]}",
           time_color: 2,
           content_color: 2
         )
       else
-        color = @data["currency"].eql? "OLE" ? 5 : 6
-        icons = @data["currency"].eql? "OLE" ? "🔮" : "💎"
+        color = @data[:currency].eql?("OLE") ? 5 : 6
+        icons = @data[:currency].eql?("OLE") ? "🔮" : "💎"
 
         add_status_box_message(
-          content: "🥳 #{icons} ##{@data["id"]} | CLAIMED #{@data["amount"]}$##{@data["currency"]} #{icons}",
+          content: "🥳 #{icons} ##{@data[:id]} | CLAIMED #{@data[:amount]}$##{@data[:currency]} #{icons}",
           time_color: color,
           content_color: color
         )
@@ -89,17 +89,17 @@ class MessagePrinter
     end
   end
 
-  def add_chat_box_message(name: @data['name'], content: @data["content"], name_color: 3, time_color: 2)
+  def add_chat_box_message(name: @data[:name], content: @data[:content], name_color: 3, time_color: 2)
     @chat_box.add_colored_text(
       [].tap do |arr|
-        arr << { text: "#{@data['time']} | ", color: time_color }
+        arr << { text: "#{@data[:time]} | ", color: time_color }
         arr << { text: "#{name}", color: name_color }
         arr << { text: " | #{content}", color: 7 } unless content.empty?
       end
     )
   end
 
-  def add_status_box_message(content: @data["content"], time_color: 3, content_color: 7)
+  def add_status_box_message(content: @data[:content], time_color: 3, content_color: 7)
     @status_box.add_colored_text([
       { text: "#{time_to_message} | ", color: time_color },
       { text: "#{content}", color: content_color }
@@ -107,8 +107,8 @@ class MessagePrinter
   end
 
   def set_last_chat_message_at
-    return unless !@data["time"]&.empty?
-    @last_chat_message_at = Time.parse(@data["time"])
+    return if @data[:time]&.empty?
+    @last_chat_message_at = Time.parse(@data[:time])
   end
 
   def time_to_message

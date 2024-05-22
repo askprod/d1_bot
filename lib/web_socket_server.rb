@@ -1,5 +1,5 @@
 class WebSocketServer
-  attr_accessor :client
+  attr_accessor :clients, :thread
 
   def initialize(port, message_printer)
     @clients = []
@@ -8,38 +8,17 @@ class WebSocketServer
   end
 
   def self.run(port, message_printer)
-    self.new(port, message_printer).run
+    self.new(port, message_printer).tap { |w| w.run }
   end
 
   def run
-    Thread.new do
+    @thread = Thread.new do
       EM.run do
         EM::WebSocket.run(host: '0.0.0.0', port: @port) do |ws|
-          ws.onopen do |handshake|
-            if @client
-              @client.close_connection
-            end
-
-            @client = ws
-            @clients << ws
-            @message_printer.print_message({
-              box_type: "status",
-              content: "🌐 WebSocket connection successful."
-            }.to_json)
-          end
-
-          ws.onmessage do |msg|
-            @message_printer.print_message(msg)
-          end
-
-          ws.onclose do
-            @client = nil
-            @clients.delete(ws)
-            @message_printer.print_message({
-              box_type: "status",
-              content: "🚫 WebSocket connection closed."
-            }.to_json)
-          end
+          ws.onopen { handle_on_open(ws) }
+          ws.onmessage { |msg| handle_on_message(ws, msg) }
+          ws.onclose { handle_on_close(ws) }
+          ws.onerror { |error| handle_on_error(ws, error) }
         end
       end
     end
@@ -47,6 +26,29 @@ class WebSocketServer
 
   def stop
     @clients.each(&:close_connection)
-    EM.stop if EM.reactor_running?
+    @clients.clear
+    EM.stop_event_loop if EM.reactor_running?
+  end
+
+  private
+
+  def handle_on_open(ws)
+    @clients << ws
+    @message_printer.print_message({ box_type: "status", content: "🌐 WebSocket connection successful."}.to_json)
+  end
+
+  def handle_on_message(_, msg)
+    @message_printer.print_message(msg)
+  end
+
+  def handle_on_close(ws)
+    @clients.delete(ws)
+    @message_printer.print_message({ box_type: "status", content: "🚫 WebSocket connection closed." }.to_json)
+  end
+
+  def handle_on_error(ws, error)
+    @message_printer.print_message({ box_type: "status", content: "🚫 WebSocket error." }.to_json)
+    @message_printer.print_message({ box_type: "status", content: "🚫 Error: #{error}" }.to_json)
+    ws.close
   end
 end
