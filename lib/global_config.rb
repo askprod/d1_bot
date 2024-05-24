@@ -1,12 +1,12 @@
 class GlobalConfig
-  CONFIGS_PATH = "./configs"
+  CONFIG_PATH = "./config"
   attr_accessor :config, :current_os, :current_username
 
   def initialize()
     set_os
     set_os_username
     set_template_config_file
-    prompt_configs
+    prompt_config
   end
 
   def set_os
@@ -31,19 +31,19 @@ class GlobalConfig
 
   def set_template_config_file
     @template_config_filename = "template.yml"
-    @template_config_file = File.join(CONFIGS_PATH, @template_config_filename)
+    @template_config_file = File.join(CONFIG_PATH, @template_config_filename)
     raise "Config template file not found." unless File.exist? @template_config_file
   end
 
-  def set_configs
-    paths = Dir.glob(File.join(CONFIGS_PATH, "*.yml")).reject { |file| File.basename(file) == @template_config_filename }
-    @config_filenames = paths.map { |f| f.gsub("#{CONFIGS_PATH}/", "").gsub(".yml", "") }
+  def set_config
+    paths = Dir.glob(File.join(CONFIG_PATH, "*.yml")).reject { |file| File.basename(file) == @template_config_filename }
+    @config_filenames = paths.map { |f| f.gsub("#{CONFIG_PATH}/", "").gsub(".yml", "") }
   end
 
-  def prompt_configs
-    set_configs
+  def prompt_config
+    set_config
 
-    unless has_any_configs?
+    unless has_any_config?
       puts "\n"
       puts "No configuration found."
       create_config
@@ -56,10 +56,10 @@ class GlobalConfig
     config_choices.each.with_index(1) { |f, i| puts "  #{i}. #{config_choices[i - 1]}" }
     puts "\n"
     print "Enter the number of the config you want to use: "
-    parse_toggle_choice(:prompt_configs, possible_choices: config_choices.to_a.map.with_index { |_, i| i.to_i + 1 }.map(&:to_s))
+    parse_toggle_choice(:prompt_config, possible_choices: config_choices.to_a.map.with_index { |_, i| i.to_i + 1 }.map(&:to_s))
     return create_config if @choice.to_i.eql? 1
     @current_config_name = config_choices[choice_to_int - 1]
-    @current_config_file_path = "#{CONFIGS_PATH}/#{@current_config_name}.yml"
+    @current_config_file_path = "#{CONFIG_PATH}/#{@current_config_name}.yml"
     file = File.read(@current_config_file_path)
     @config = YAML.safe_load(file)
     prompt_change_or_keep_config
@@ -89,7 +89,7 @@ class GlobalConfig
     end
   end
 
-  def has_any_configs?
+  def has_any_config?
     @config_filenames.any?
   end
 
@@ -100,11 +100,11 @@ class GlobalConfig
     print "Enter the name of your new config: (ex. 'default_chrome') "
     puts "\n"
     filename = gets.chomp
-    new_file = File.join(CONFIGS_PATH, "#{filename}.yml")
+    new_file = File.join(CONFIG_PATH, "#{filename}.yml")
     template_content = File.read(@template_config_file)
     File.write(new_file, template_content)
     puts "Config created with success."
-    prompt_configs
+    prompt_config
   end
 
   def prompt_auto_rally

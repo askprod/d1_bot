@@ -1,3 +1,3 @@
 .DS_STORE
-configs/*
-!configs/template.yml
+config/*
+!config/template.yml

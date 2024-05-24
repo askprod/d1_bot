@@ -2,9 +2,9 @@ Work in progress
 
 Todo
   - Global
-    - Rename folder configs to config
+    - ✅ Rename folder configs to config
     - Namespace ruby files and use inheritance
-    - Display config properly in prompt instead instead of just puts
+    - ✅ Display config properly in prompt instead instead of just puts
     - Handle when process is exited/browser is closed to properly kill everything
     - ✅ Reload tab/browser if no message has been received in x minutes
     - ✅ Add messages after browser launch:
@@ -17,7 +17,7 @@ Todo
     - Make the airdrop message like a regular message (there is a div called .name if it's $OLE)
     - ✅ Not only wait for chat container but also page to be fully loaded before calling the mutations script
     - Write ruby errors to a file
-    - Add possibility to create a config when prompted with list (for now you can only have 1 unless you create the file manually)
+    - ✅ Add possibility to create a config when prompted with list (for now you can only have 1 unless you create the file manually)
 
 Visual improvements of chat
   - ✅ Add box for ruby logs
