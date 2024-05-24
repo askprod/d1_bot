@@ -5,7 +5,7 @@ Todo
     - ✅ Rename folder configs to config
     - Namespace ruby files and use inheritance
     - ✅ Display config properly in prompt instead instead of just puts
-    - Handle when process is exited/browser is closed to properly kill everything
+    - ✅ Handle when process is exited/browser is closed to properly kill everything
     - ✅ Reload tab/browser if no message has been received in x minutes
     - ✅ Add messages after browser launch:
       - ✅ "60 seconds to of wait until exiting program"
@@ -30,4 +30,5 @@ Nice to have
   - Send a message in chat at random intervals (with AI ? lol)
 
 Bugs
-  - Config prompt is not letting you chose the second config file if you have one
+  - ✅ Config prompt is not letting you chose the second config file if you have one
+  - ✅ Uptime not updating

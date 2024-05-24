@@ -1,8 +1,9 @@
 class InfoBox < BaseBox
   attr_accessor :values
 
-  def initialize
+  def initialize(config)
     super(1.0 / 4, 0, 6) # InfoBox will occupy 1/4 of the screen height and start at the top with a yellow border
+    @config = config
     set_static_message
     set_messages_value
     display_static_message
@@ -26,14 +27,18 @@ class InfoBox < BaseBox
 
   def set_messages_value
     @values = {
+      # Col 1
       space_name: "N/A",
       claimed_ole: 0,
       claimed_gems: 0,
+      # Col 2
       latest_claim: "N/A",
       successful_claims: 0,
       failed_claims: 0,
+      # Col 3
       app_started_at: Time.now.strftime("%d/%m %I:%M %p"),
       total_uptime: 0,
+      config: "Autorally: #{@config["auto_rally"]} | WSPort: #{@config["websocket_port"]}"
     }
   end
 
@@ -65,6 +70,7 @@ class InfoBox < BaseBox
       "-" * (@box_width / 3 - 2),
       "App started at: #{@values[:app_started_at]}",
       "Total uptime: #{@values[:total_uptime]} minutes",
+      @values[:config]
     ]
 
     # Set zone width

@@ -2,7 +2,7 @@ class GlobalConfig
   CONFIG_PATH = "./config"
   attr_accessor :config, :current_os, :current_username
 
-  def initialize()
+  def initialize
     set_os
     set_os_username
     set_template_config_file

@@ -42,8 +42,8 @@ class WebSocketServer
   end
 
   def handle_on_close(ws)
-    @clients.delete(ws)
     @message_printer.print_message({ box_type: "status", content: "🚫 WebSocket connection closed." }.to_json)
+    @clients.delete(ws)
   end
 
   def handle_on_error(ws, error)
