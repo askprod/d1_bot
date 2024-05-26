@@ -109,11 +109,14 @@ class Driver
   end
 
   def initialize_threads
+    print_status_message("⌛ Starting threads...")
     @threads = []
 
-    if can_auto_rally?
-      @threads << Thread.new do
-        loop { sleep(AUTO_RALLY_TIMER); check_auto_rally }
+    @threads << Thread.new do
+      loop do
+        sleep(AUTO_RALLY_TIMER)
+        return print_status_message("⛔ Autorally disabled.") unless can_auto_rally?
+        check_auto_rally
       end
     end
 
@@ -139,6 +142,8 @@ class Driver
     end
 
     @threads.each(&:join)
+    print_status_message("🧵 Threads started successfully!")
+
     @threads_initialized = true
   end
 
@@ -169,8 +174,8 @@ class Driver
   end
 
   def stop_execution
-    puts "🚫 Gracefully stopping..."
-    puts "\n"
+    print_status_message("🚫 Gracefully stopping...")
+    sleep(1)
     EM.stop           if EM.reactor_running?
     close_boxes       if curses_boxes_initialized?
     @websocket.stop   if websocket_initialized?
@@ -190,15 +195,16 @@ class Driver
     print_status_message("💀 No chat message received in 30 minutes!")
     print_status_message("⌛ Refreshing page and scripts...")
 
-    @chat_box.empty_content
-    kill_threads
-    @websocket.stop if @websocket
+    @chat_box.empty_content if curses_boxes_initialized?
+    kill_threads            if threads_initialized?
+    @websocket.stop         if websocket_initialized?
     reset_flags
 
     @driver.navigate.refresh
     initialize_web_socket
     initialize_live_tab
     initialize_threads
+    print_status_message("🌀 Refresh sucessfull!")
   end
 
   def kill_threads
@@ -206,10 +212,13 @@ class Driver
   end
 
   def reset_flags
+    print_status_message("🏴‍☠️ Setting initializer flags to false...")
+    sleep(1)
     @shutdown_requested = false
     @curses_boxes_initialized = false
     @websocket_initialized = false
     @threads_initialized = false
+    print_status_message("🏳️ Flag set successfully!")
   end
 
   ### HELPERS ###
@@ -225,8 +234,9 @@ class Driver
   end
 
   def check_auto_rally
+    print_status_message("🤔 Checking if you can rally...")
+
     begin
-      print_status_message("🤔 Checking if you can rally...")
       rally_button = @driver.find_element(:css, ".css-pladf5 .rally-button")
       rally_button.click
       print_status_message("🥳 You have been rallied!")

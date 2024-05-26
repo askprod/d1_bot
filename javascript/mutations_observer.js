@@ -39,8 +39,11 @@ const parseAirdropAmount = (div) => {
 }
 
 const clickAirdrop = (div, node, websocket, speed) => {
+  console.log("Clicking airdrop:", div); // Add log before click
+
   setTimeout(() => {
     div.click();
+    console.log("Airdrop clicked:", div); // Log after click
   }, speed);
 
   data = {};
@@ -49,6 +52,7 @@ const clickAirdrop = (div, node, websocket, speed) => {
   data.type = "claim_attempt"
   data.curreny = getCurrencyFromNode(node);
 
+  console.log("Sending WebSocket data:", data); // Log WebSocket data
   websocket.send(JSON.stringify(data));
 }
 
@@ -118,28 +122,6 @@ const getCurrencyFromNode = (node) => {
   return currency;
 }
 
-// Start observer
-const startObserver = (chatContainer, websocket, observerCallback) => {
-  const observer = new MutationObserver(observerCallback);
-
-  const options = {
-    childList: true,
-    subtree: true
-  };
-
-  // Start observing the document for configured mutations
-  observer.observe(chatContainer, options);
-
-  // Set interval to disconnect and reconnect the observer every 30 seconds
-  setInterval(() => {
-    websocket.send(JSON.stringify({ type: "status_message", content: "Auto refreshing mutation observer..." }))
-    observer.disconnect();
-    observer.observe(chatContainer, options);
-  }, 120000);
-
-  return observer;
-};
-
 // Initialize observer
 const initializeObserver = (chatContainer, websocket, config) => {
   let lastIndex = -1; // Initialize last index variable
@@ -157,39 +139,44 @@ const initializeObserver = (chatContainer, websocket, config) => {
 
         addedNodes.forEach((node) => {
           if (isValidNode(node)) {
+            console.log("Valid node found:", node); // Debug log
+
             scrollContainer.scrollTop = scrollContainer.scrollHeight;
             const dataIndex = parseInt(node.getAttribute('data-index'));
 
             if (dataIndex > lastIndex) {
+              lastIndex = dataIndex;
               const airdropDiv = node.querySelector(".airdrop");
               if(airdropDiv) {
+                console.log("Airdrop div found:", airdropDiv); // Debug log
+
                 clickAirdrop(airdropDiv, node, websocket, config.claim_speed);
                 checkClaim(airdropDiv, node, websocket);
               }
               const node_details = setNodeDetails(node);
               websocket.send(JSON.stringify(node_details));
-              lastIndex = dataIndex;
             }
           }
         });
+      } else {
+        console.log("Invalid node:", node); // Debug log for invalid nodes
       }
     });
   };
 
   const startAndObserve = () => {
-    sendMessage("👀 Mutation observer started successfully. Refresh will occur every 10 minutes.");
+    sendMessage("👀 Mutation observer started successfully. Refresh will occur every 30 minutes.");
     observer.observe(chatContainer, { childList: true, subtree: true });
   };
 
   const observer = new MutationObserver(observerCallback);
-
   startAndObserve();
 
   setInterval(() => {
     sendMessage("🔄 Refreshing mutation observer...");
     observer.disconnect();
     startAndObserve();
-  }, 600000);
+  }, 1800000);
 };
 
 
