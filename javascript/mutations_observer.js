@@ -24,10 +24,6 @@ const setNodeDetails = (node) => {
   node_details.content = contentText;
   node_details.time = timeMsg;
   if(airdropDiv) { node_details.amount = parseAirdropAmount(airdropDiv); }
-
-  console.log("setNodeDetails node", node); // debug
-  console.log("setNodeDetails node_details", node_details);
-
   return node_details;
 };
 
@@ -39,11 +35,8 @@ const parseAirdropAmount = (div) => {
 }
 
 const clickAirdrop = (div, node, websocket, speed) => {
-  console.log("Clicking airdrop:", div); // Add log before click
-
   setTimeout(() => {
     div.click();
-    console.log("Airdrop clicked:", div); // Log after click
   }, speed);
 
   data = {};
@@ -52,37 +45,45 @@ const clickAirdrop = (div, node, websocket, speed) => {
   data.type = "claim_attempt"
   data.curreny = getCurrencyFromNode(node);
 
-  console.log("Sending WebSocket data:", data); // Log WebSocket data
   websocket.send(JSON.stringify(data));
 }
 
 const checkClaim = (div, node, websocket) => {
   let checkTimeOut;
+  let amount_claimed = 0;
+  const node_id = getIdFromNode(node);
 
-  checkTimeOut = setTimeout(() => {
-    let data = {};
-    let amount_claimed = 0;
+  const checkAmount = () => {
     const claimedSpan = div.querySelector('span.flow-root');
-
     if (claimedSpan) {
       const claimedText = claimedSpan.textContent.trim();
       const match = claimedText.match(/Claimed (\d{1,3}(?:,\d{3})*)\s+\w+/);
-      if (match && match[1]) {
-        amount_claimed = parseInt(match[1].replace(/,/g, ''), 10);
-        console.log("checkClaim found amount!", amount_claimed); // debug
+      if (match && match[1] !== "0") {
+        amount_claimed = parseInt(match[1].replace(/,/g, ''));
         clearTimeout(checkTimeOut);
+        sendResult(amount_claimed);
+        claimedSpan.removeEventListener('DOMSubtreeModified', checkAmount);
       }
     }
+  };
 
-    data.id = getIdFromNode(node);
+  const sendResult = (amount_claimed) => {
+    let data = {};
+    data.id = node_id;
     data.box_type = "status";
     data.type = "claim_result";
     data.currency = getCurrencyFromNode(node);
-    data.amount_claimed = amount_claimed;
-
-    console.log("checkClaim data", data); // debug
-
+    data.amount_claimed = parseInt(amount_claimed);
     websocket.send(JSON.stringify(data));
+  };
+
+  checkAmount();
+
+  div.addEventListener('DOMSubtreeModified', checkAmount);
+
+  checkTimeOut = setTimeout(() => {
+    sendResult("0");
+    div.removeEventListener('DOMSubtreeModified', checkAmount);
   }, 15000);
 };
 
@@ -139,8 +140,6 @@ const initializeObserver = (chatContainer, websocket, config) => {
 
         addedNodes.forEach((node) => {
           if (isValidNode(node)) {
-            console.log("Valid node found:", node); // Debug log
-
             scrollContainer.scrollTop = scrollContainer.scrollHeight;
             const dataIndex = parseInt(node.getAttribute('data-index'));
 
@@ -148,8 +147,6 @@ const initializeObserver = (chatContainer, websocket, config) => {
               lastIndex = dataIndex;
               const airdropDiv = node.querySelector(".airdrop");
               if(airdropDiv) {
-                console.log("Airdrop div found:", airdropDiv); // Debug log
-
                 clickAirdrop(airdropDiv, node, websocket, config.claim_speed);
                 checkClaim(airdropDiv, node, websocket);
               }
@@ -158,8 +155,6 @@ const initializeObserver = (chatContainer, websocket, config) => {
             }
           }
         });
-      } else {
-        console.log("Invalid node:", node); // Debug log for invalid nodes
       }
     });
   };

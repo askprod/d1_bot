@@ -20,8 +20,7 @@ class InfoBox < BaseBox
   def set_static_message
     @static_message = [
       "💎💎💎💎💎 Enjoy your free $GEMS and $OLE, courtesy of @sirgmbot 💎💎💎💎💎",
-      "Consider donating on my ETH address if you like the software",
-      "0xF291d7BAD4F553Ff118bDEE2edEFbE378C3154F7"
+      "ETH address: 0xF291d7BAD4F553Ff118bDEE2edEFbE378C3154F7"
     ]
   end
 
@@ -53,21 +52,21 @@ class InfoBox < BaseBox
   def display_dynamic_zones
     # Define the zones
     left_zone = [
-      "-" * (@box_width / 3 - 2),
+      "-" * (@box_width / 3 - 3),
       "Current space: #{@values[:space_name]}",
-      "Claimed $OLE: #{@values[:claimed_ole]}",
-      "Claimed $GEMS: #{@values[:claimed_gems]}"
+      "🔮 Claimed $OLE: #{@values[:claimed_ole]}",
+      "💎 Claimed $GEMS: #{@values[:claimed_gems]}"
     ]
 
     middle_zone = [
-      "-" * (@box_width / 3 - 2),
+      "-" * (@box_width / 3 - 3),
       "Latest Claim: #{@values[:latest_claim]}",
       "Successful claims: #{@values[:successful_claims]}",
       "Failed claims: #{@values[:failed_claims]}"
     ]
 
     right_zone = [
-      "-" * (@box_width / 3 - 2),
+      "-" * (@box_width / 3 - 3),
       "App started at: #{@values[:app_started_at]}",
       "Total uptime: #{@values[:total_uptime]} minutes",
       @values[:config]

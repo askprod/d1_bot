@@ -9,11 +9,10 @@ class Driver
     @browser = browser
     @config = config
 
-    reset_flags
-
     @browser_initialized = false
     @shutdown_mutex = Mutex.new
     @print_status_mutex = Mutex.new
+    reset_flags
   end
 
   def launch
@@ -114,9 +113,13 @@ class Driver
 
     @threads << Thread.new do
       loop do
+        if can_auto_rally?
+          check_auto_rally
+        else
+          print_status_message("⛔ Autorally disabled.")
+        end
+
         sleep(AUTO_RALLY_TIMER)
-        return print_status_message("⛔ Autorally disabled.") unless can_auto_rally?
-        check_auto_rally
       end
     end
 
@@ -212,13 +215,13 @@ class Driver
   end
 
   def reset_flags
-    print_status_message("🏴‍☠️ Setting initializer flags to false...")
+    print_status_message("🏴‍☠️ Setting initializer flags to false...") if curses_boxes_initialized?
     sleep(1)
     @shutdown_requested = false
     @curses_boxes_initialized = false
     @websocket_initialized = false
     @threads_initialized = false
-    print_status_message("🏳️ Flag set successfully!")
+    print_status_message("🏳️ Flag set successfully!") if curses_boxes_initialized?
   end
 
   ### HELPERS ###
