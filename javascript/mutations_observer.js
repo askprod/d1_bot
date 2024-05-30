@@ -217,9 +217,9 @@ const initializeObserver = (chatContainer, websocket, config) => {
                 clickAirdrop(node, config.speed);
                 checkClaim(node, node_details, websocket);
               }
+            } else {
+              websocket.send(JSON.stringify(node_details));
             }
-
-            websocket.send(JSON.stringify(node_details));
           }
         });
       }

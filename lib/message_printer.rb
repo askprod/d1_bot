@@ -37,7 +37,6 @@ class MessagePrinter
         name_color: 5,
         time_color: 5
       )
-      #@chat_box.add_message(5)
     when "host_airdrop"
       add_chat_box_message(
         name: "##{@data[:id]} | 💎💎💎💎💎 #{@data[:amount]} $GEMS FROM HOST 💎💎💎💎💎",
@@ -92,7 +91,7 @@ class MessagePrinter
         info_box_key = "claimed_#{@data[:currency].downcase}".to_sym
         @info_box.update_value(info_box_key, @info_box.values[info_box_key].to_i + @data[:amount_claimed].to_i)
         @info_box.update_value(:successful_claims, @info_box.values[:successful_claims] + 1)
-        @info_box.update_value(:latest_claim, time_to_message)
+        @info_box.update_value(:latest_claim, time_to_message(Time.now))
       end
     else
       add_status_box_message
@@ -111,7 +110,7 @@ class MessagePrinter
 
   def add_status_box_message(content: @data[:content], time_color: 3, content_color: 7)
     @status_box.add_colored_text([
-      { text: "#{time_to_message} | ", color: time_color },
+      { text: "#{time_to_message(Time.now)} | ", color: time_color },
       { text: "#{content}", color: content_color }
     ])
   end
@@ -121,7 +120,7 @@ class MessagePrinter
     @last_chat_message_at = Time.parse(@data[:time])
   end
 
-  def time_to_message
-    Time.now.strftime('%I:%M:%S %p')
+  def time_to_message(time)
+    time.strftime('%I:%M:%S %p')
   end
 end

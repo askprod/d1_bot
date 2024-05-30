@@ -38,7 +38,8 @@ class InfoBox < BaseBox
       # Col 3
       app_started_at: Time.now.strftime("%d/%m %I:%M %p"),
       total_uptime: 0,
-      config_info: "Autorally: #{@config["auto_rally"] ? "ENABLED" : "DISABLED"} | WSPort: #{@config["websocket_port"]}"
+      config_info: "Autorally: #{@config["auto_rally"] ? "ENABLED" : "DISABLED"} | WSPort: #{@config["websocket_port"]}",
+      claim_disable_in: "N/A",
     }
   end
 
@@ -66,8 +67,9 @@ class InfoBox < BaseBox
     ]
 
     right_zone = [
-      "Started at: #{@values[:app_started_at]} | Uptime: #{@values[:total_uptime]}min",
-      @values[:config_info]
+      "Started at: #{@values[:app_started_at]} | Uptime: #{@values[:total_uptime]} min",
+      @values[:config_info],
+      "Claim disabled in: ~#{@values[:claim_disable_in]} min"
     ]
 
     # Set zone width

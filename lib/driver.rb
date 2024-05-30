@@ -141,6 +141,7 @@ class Driver
       loop do
         sleep(60)
         update_uptime
+        update_claim_disabled_in
       end
     end
 
@@ -236,6 +237,18 @@ class Driver
 
   def update_uptime
     @info_box.update_value(:total_uptime, @info_box.values[:total_uptime] + 1)
+  end
+
+  def update_claim_disabled_in
+    # TODO pass time_to_message in helper class ?
+    @info_box.update_value(
+      :claim_disable_in,
+      @message_printer.time_to_message(
+        # Pass in future same time helper class
+        # offset - Time.now
+        (((@last_rally_at - Time.now).to_i) / 60).to_i
+      )
+    )
   end
 
   def print_status_message(content)
