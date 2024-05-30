@@ -147,7 +147,7 @@ const checkClaim = (node_details, websocket) => {
   let amount_claimed = 0;
 
   const checkClaimAmount = () => {
-    const claimedSpan = div.querySelector('.airdrop span.flow-root');
+    const claimedSpan = node.querySelector('.airdrop span.flow-root');
     if(!claimedSpan) { return; }
     const claimedText = claimedSpan.textContent.trim();
     const match = claimedText.match(/Claimed (\d{1,3}(?:,\d{3})*)\s+\w+/);
@@ -170,11 +170,11 @@ const checkClaim = (node_details, websocket) => {
   };
 
   checkClaimAmount();
-  div.addEventListener('DOMSubtreeModified', checkClaimAmount);
+  node.addEventListener('DOMSubtreeModified', checkClaimAmount);
 
   checkTimeOut = setTimeout(() => {
     sendResult(node_details, "0");
-    div.removeEventListener('DOMSubtreeModified', checkClaimAmount);
+    node.removeEventListener('DOMSubtreeModified', checkClaimAmount);
   }, 15000);
 }
 

@@ -117,7 +117,7 @@ class MessagePrinter
   end
 
   def set_last_chat_message_at
-    return if @data[:time]&.empty?
+    return if (@data[:time] || "").empty?
     @last_chat_message_at = Time.parse(@data[:time])
   end
 
