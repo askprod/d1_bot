@@ -1,3 +1,11 @@
+window.observerState = {
+  shouldClickAirdrops: true,
+
+  updateShouldClickAirdrops: function(shouldClickAirdrops) {
+    this.shouldClickAirdrops = shouldClickAirdrops;
+  }
+};
+
 const isValidNode = (node) => {
   return (
     node.nodeType === Node.ELEMENT_NODE &&
@@ -7,8 +15,7 @@ const isValidNode = (node) => {
   );
 };
 
-const setNodeDetails = (node) => {
-  const airdropDiv = node.querySelector(".airdrop");
+const setNodeDetails = (node, node_details) => {
   const contentNode = node.querySelector('.msg-content .content');
   const nameNode = node.querySelector('.name');
   const timeNode = node.querySelector('.time');
@@ -16,76 +23,15 @@ const setNodeDetails = (node) => {
   const nameMsg = nameNode ? nameNode.innerText.trim() : "";
   const timeMsg = timeNode ? timeNode.innerText.trim() : "";
 
-  let node_details = {};
   node_details.id = getIdFromNode(node);
   node_details.box_type = "chat";
   node_details.type = getNodeType(node);
   node_details.name = nameMsg;
   node_details.content = contentText;
   node_details.time = timeMsg;
-  if(airdropDiv) { node_details.amount = parseAirdropAmount(airdropDiv); }
-  return node_details;
 };
 
-const parseAirdropAmount = (div) => {
-  const innerText = div.innerText;
-  const regex = /\d{1,3}(?:,\d{3})*(?:\.\d+)?/;
-  const match = innerText.match(regex);
-  return match ? parseFloat(match[0].replace(/,/g, '')) : "";
-}
-
-const clickAirdrop = (div, node, websocket, speed) => {
-  setTimeout(() => {
-    div.click();
-  }, speed);
-
-  data = {};
-  data.id = getIdFromNode(node);
-  data.box_type = "status";
-  data.type = "claim_attempt"
-  data.curreny = getCurrencyFromNode(node);
-
-  websocket.send(JSON.stringify(data));
-}
-
-const checkClaim = (div, node, websocket) => {
-  let checkTimeOut;
-  let amount_claimed = 0;
-  const node_id = getIdFromNode(node);
-
-  const checkAmount = () => {
-    const claimedSpan = div.querySelector('span.flow-root');
-    if (claimedSpan) {
-      const claimedText = claimedSpan.textContent.trim();
-      const match = claimedText.match(/Claimed (\d{1,3}(?:,\d{3})*)\s+\w+/);
-      if (match && match[1] !== "0") {
-        amount_claimed = parseInt(match[1].replace(/,/g, ''));
-        clearTimeout(checkTimeOut);
-        sendResult(amount_claimed);
-        claimedSpan.removeEventListener('DOMSubtreeModified', checkAmount);
-      }
-    }
-  };
-
-  const sendResult = (amount_claimed) => {
-    let data = {};
-    data.id = node_id;
-    data.box_type = "status";
-    data.type = "claim_result";
-    data.currency = getCurrencyFromNode(node);
-    data.amount_claimed = parseInt(amount_claimed);
-    websocket.send(JSON.stringify(data));
-  };
-
-  checkAmount();
-
-  div.addEventListener('DOMSubtreeModified', checkAmount);
-
-  checkTimeOut = setTimeout(() => {
-    sendResult("0");
-    div.removeEventListener('DOMSubtreeModified', checkAmount);
-  }, 15000);
-};
+// GETTERS
 
 const getIdFromNode = (node) => {
   return node.getAttribute("data-item-index");
@@ -114,13 +60,122 @@ const getNodeType = (node) => {
   return nodeType;
 }
 
-const getCurrencyFromNode = (node) => {
-  const type = getNodeType(node);
+const getCurrencyFromType = (node_details) => {
   let currency = "";
-  if(type == "ole_airdrop") { currency = "OLE" }
-  if(type == "rally_airdrop") { currency = "GEMS" }
-  if(type == "host_airdrop") { currency = "GEMS" }
+  if(node_details.type == "ole_airdrop") { currency = "OLE" }
+  if(node_details.type == "rally_airdrop") { currency = "GEMS" }
+  if(node_details.type == "host_airdrop") { currency = "GEMS" }
   return currency;
+}
+
+const getRandomSleepDuration = (ms) => {
+  const min = ms * 0.8;
+  const max = ms * 2;
+  return parseInt(Math.random() * (max - min) + min);
+}
+
+const getAirdropAmount = (node) => {
+  const innerText = node.querySelector(".airdrop").innerText;
+  const regex = /\d{1,3}(?:,\d{3})*(?:\.\d+)?/;
+  const match = innerText.match(regex);
+  return match ? parseFloat(match[0].replace(/,/g, '')) : "";
+}
+
+// OTHER FUNCTIONS
+
+const nodeIsAirdrop = (node_details) => {
+  return (nodeIsGems(node_details) || nodeIsOle(node_details))
+}
+
+const nodeIsGems = (node_details) => {
+  return [
+    "rally_airdrop",
+    "host_airdrop"
+  ].includes(node_details.type);
+}
+
+const nodeIsOle = (node_details) => {
+  return (node_details.type == "ole_airdrop");
+}
+
+const canClickAirdrop = (node_details, config, websocket) => {
+  if(!window.observerState.shouldClickAirdrops) {
+    websocket.send(JSON.stringify({
+      box_type: "status",
+      content: `#${node_details.id} | 🚨 GLOBAL CLAIM DISABLED`
+    }));
+    return false;
+  }
+
+  if(nodeIsOle(node_details) && config.should_claim_ole == false) {
+    websocket.send(JSON.stringify({
+      box_type: "status",
+      content: `#${node_details.id} | 🔮 $OLE CLAIM DISABLED`
+    }));
+    return false;
+  }
+
+  if(nodeIsGems(node_details) && config.should_claim_gems == false) {
+    websocket.send(JSON.stringify({
+      box_type: "status",
+      content: `#${node_details.id} | 💎 $GEMS CLAIM DISABLED`
+    }));
+    return false;
+  }
+
+  return true;
+}
+
+const clickAirdrop = (node, speed) => {
+  setTimeout(() => {
+    node.querySelector(".airdrop").click();
+  }, getRandomSleepDuration(speed));
+}
+
+const sendAirdropMessage = (node, node_details, websocket) => {
+  data = {};
+  data.id = node_details.id;
+  data.box_type = node_details.box_type;
+  data.type = node_details.type;
+  data.currency = getCurrencyFromType(node_details);
+  data.claim_amount = getAirdropAmount(node);
+  websocket.send(JSON.stringify(data));
+}
+
+const checkClaim = (node_details, websocket) => {
+  let checkTimeOut;
+  let amount_claimed = 0;
+
+  const checkClaimAmount = () => {
+    const claimedSpan = div.querySelector('.airdrop span.flow-root');
+    if(!claimedSpan) { return; }
+    const claimedText = claimedSpan.textContent.trim();
+    const match = claimedText.match(/Claimed (\d{1,3}(?:,\d{3})*)\s+\w+/);
+    if (match && match[1] !== "0") {
+      amount_claimed = parseInt(match[1].replace(/,/g, ''));
+      clearTimeout(checkTimeOut);
+      sendResult(node_details, amount_claimed);
+      claimedSpan.removeEventListener('DOMSubtreeModified', checkClaimAmount);
+    }
+  }
+
+  const sendResult = (node_details, amount_claimed) => {
+    let data = {};
+    data.id = node_details.id;
+    data.box_type = node_details.box_type;
+    data.type = node_details.type;
+    data.currency = node_details.currency;
+    data.amount_claimed = parseInt(amount_claimed);
+    websocket.send(JSON.stringify(data));
+  };
+
+  checkClaimAmount();
+  div.addEventListener('DOMSubtreeModified', checkClaimAmount);
+
+  checkTimeOut = setTimeout(() => {
+    sendResult(node_details, "0");
+    div.removeEventListener('DOMSubtreeModified', checkClaimAmount);
+  }, 15000);
 }
 
 // Initialize observer
@@ -140,19 +195,25 @@ const initializeObserver = (chatContainer, websocket, config) => {
 
         addedNodes.forEach((node) => {
           if (isValidNode(node)) {
+
             scrollContainer.scrollTop = scrollContainer.scrollHeight;
             const dataIndex = parseInt(node.getAttribute('data-index'));
 
-            if (dataIndex > lastIndex) {
-              lastIndex = dataIndex;
-              const airdropDiv = node.querySelector(".airdrop");
-              if(airdropDiv) {
-                clickAirdrop(airdropDiv, node, websocket, config.claim_speed);
-                checkClaim(airdropDiv, node, websocket);
+            if(lastIndex > dataIndex) { return;}
+
+            lastIndex = dataIndex;
+            let node_details = {}
+            setNodeDetails(node, node_details);
+
+            if(nodeIsAirdrop(node_details)) {
+              sendAirdropMessage(node, node_details, websocket)
+              if(canClickAirdrop(node_details, config, websocket)) {
+                clickAirdrop(node, config.speed);
+                checkClaim(node, node_details);
               }
-              const node_details = setNodeDetails(node);
-              websocket.send(JSON.stringify(node_details));
             }
+
+            websocket.send(JSON.stringify(node_details));
           }
         });
       }
@@ -176,9 +237,10 @@ const initializeObserver = (chatContainer, websocket, config) => {
 
 
 // Wrapper to invoke the script from execute_script
-((chatContainer, config) => {
+((chatContainer, config, shouldClickAirdrops) => {
   const websocket = new WebSocket(`ws://localhost:${config.websocket_port}`);
   websocket.onopen = () => {
+    window.observerState.updateShouldClickAirdrops(shouldClickAirdrops);
     initializeObserver(chatContainer, websocket, config);
   };
-})(arguments[0], arguments[1]);
+})(arguments[0], arguments[1], arguments[2]);

@@ -1,9 +1,10 @@
 class Driver
-  DISTRICT_ONE_MAIN_URL = "https://districtone.io"
-  JS_PATH = "./javascript"
-  SELENIUM_WAIT_TIMEOUT = 60 # 1 minute
-  DRIVER_REFRESH_TIMER = 1800 # 30 minutes
-  AUTO_RALLY_TIMER = 600 # 10 minutes
+  DISTRICT_ONE_MAIN_URL         = "https://districtone.io".freeze
+  JS_PATH                       = "./javascript".freeze
+  SELENIUM_WAIT_TIMEOUT         = 60.freeze # 1 minute
+  AUTO_RALLY_TIMER              = 600.freeze # 10 minutes
+  DRIVER_REFRESH_TIMER          = 3600.freeze # 1 hour
+  CLAIM_AIRDROPS_DISABLE_TIMER  = 7200.freeze # 2 hours
 
   def initialize(browser, config)
     @browser = browser
@@ -12,6 +13,8 @@ class Driver
     @browser_initialized = false
     @shutdown_mutex = Mutex.new
     @print_status_mutex = Mutex.new
+    @last_rally_at = (Time.now + CLAIM_AIRDROPS_DISABLE_TIMER) # Inital timeout for script to run for 2 hours
+    @claim_airdrops = true
     reset_flags
   end
 
@@ -23,7 +26,11 @@ class Driver
     navigate_and_wait_for_tab
     initialize_web_socket
     initialize_live_tab
+    initialize_mutation_observer
     initialize_threads
+  rescue => e
+    raise e
+    stop_execution
   ensure
     stop_execution
   end
@@ -96,15 +103,13 @@ class Driver
     sleep(3) # Make sure page loads completely.
 
     wait_for_space_name
-
-    initialize_mutation_observer
-
-    print_status_message("💥 Scanning of chat started successfully!")
   end
 
   def initialize_mutation_observer
     js_mutations_code = File.read(File.join(JS_PATH, "mutations_observer.js"))
-    @driver.execute_script(js_mutations_code, @chat_container, @config)
+    @driver.execute_script(js_mutations_code, @chat_container, @config, @claim_airdrops)
+    sleep(1)
+    print_status_message("💥 Scanning of chat started successfully!")
   end
 
   def initialize_threads
@@ -113,6 +118,8 @@ class Driver
 
     @threads << Thread.new do
       loop do
+        toggle_claim_airdrop_status
+
         if can_auto_rally?
           check_auto_rally
         else
@@ -165,6 +172,7 @@ class Driver
     @wait.until {
       element = @driver.find_element(css: ".css-1q1av42 h2")
       @info_box.update_value(:space_name, element.text) if element.displayed?
+      print_status_message("⭐ Your are farming on the '#{element.text}' space.")
       true
     }
   end
@@ -184,7 +192,6 @@ class Driver
     @websocket.stop   if websocket_initialized?
     @driver.quit      if browser_initialized?
     kill_threads      if threads_initialized?
-    exit
   end
 
   def close_boxes
@@ -206,6 +213,7 @@ class Driver
     @driver.navigate.refresh
     initialize_web_socket
     initialize_live_tab
+    initialize_mutation_observer
     initialize_threads
     print_status_message("🌀 Refresh sucessfull!")
   end
@@ -242,6 +250,7 @@ class Driver
     begin
       rally_button = @driver.find_element(:css, ".css-pladf5 .rally-button")
       rally_button.click
+      @last_rally_at = Time.now
       print_status_message("🥳 You have been rallied!")
     rescue Selenium::WebDriver::Error::NoSuchElementError
       print_status_message("😢 No rally found. Will try again in 10 minutes.")
@@ -274,5 +283,27 @@ class Driver
 
   def websocket_initialized?
     @websocket_initialized
+  end
+
+  def should_disable_claim_airdrops_status?
+    @last_rally_at > (Time.now + CLAIM_AIRDROPS_DISABLE_TIMER)
+  end
+
+  def should_enable_claim_airdrop_status?
+    @last_rally_at < (Time.now + CLAIM_AIRDROPS_DISABLE_TIMER)
+  end
+
+  def toggle_claim_airdrop_status
+    if should_disable_claim_airdrops_status?
+      @claim_airdrops = false
+      @driver.execute_script("window.observerState.updateShouldClickAirdrops(arguments[0]);", @claim_airdrops)
+      print_status_message("🚫 Automatic claims are disabled.")
+    elsif should_enable_claim_airdrop_status?
+      @claim_airdrops = true
+      @driver.execute_script("window.observerState.updateShouldClickAirdrops(arguments[0]);", @claim_airdrops)
+      print_status_message("✅ Automatic claims are enabled.")
+    end
+
+    @info_box.update_value(:global_claim_enabled, @claim_airdrops ? "ENABLED" : "DISABLED")
   end
 end

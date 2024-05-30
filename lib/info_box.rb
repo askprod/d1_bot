@@ -28,8 +28,9 @@ class InfoBox < BaseBox
     @values = {
       # Col 1
       space_name: "N/A",
-      claimed_ole: 0,
-      claimed_gems: 0,
+      global_claim_enabled: "N/A",
+      claimed_ole: @config["should_claim_ole"] ? 0 : "DISABLED",
+      claimed_gems: @config["should_claim_gems"] ? 0 : "DISABLED",
       # Col 2
       latest_claim: "N/A",
       successful_claims: 0,
@@ -37,7 +38,7 @@ class InfoBox < BaseBox
       # Col 3
       app_started_at: Time.now.strftime("%d/%m %I:%M %p"),
       total_uptime: 0,
-      config: "Autorally: #{@config["auto_rally"]} | WSPort: #{@config["websocket_port"]}"
+      config_info: "Autorally: #{@config["auto_rally"] ? "ENABLED" : "DISABLED"} | WSPort: #{@config["websocket_port"]}"
     }
   end
 
@@ -52,24 +53,21 @@ class InfoBox < BaseBox
   def display_dynamic_zones
     # Define the zones
     left_zone = [
-      "-" * (@box_width / 3 - 3),
       "Current space: #{@values[:space_name]}",
+      "Claiming state: #{@values[:global_claim_enabled]}",
       "🔮 Claimed $OLE: #{@values[:claimed_ole]}",
       "💎 Claimed $GEMS: #{@values[:claimed_gems]}"
     ]
 
     middle_zone = [
-      "-" * (@box_width / 3 - 3),
       "Latest Claim: #{@values[:latest_claim]}",
       "Successful claims: #{@values[:successful_claims]}",
       "Failed claims: #{@values[:failed_claims]}"
     ]
 
     right_zone = [
-      "-" * (@box_width / 3 - 3),
-      "App started at: #{@values[:app_started_at]}",
-      "Total uptime: #{@values[:total_uptime]} minutes",
-      @values[:config]
+      "Started at: #{@values[:app_started_at]} | Uptime: #{@values[:total_uptime]}min",
+      @values[:config_info]
     ]
 
     # Set zone width

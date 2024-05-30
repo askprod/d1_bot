@@ -48,7 +48,8 @@ class WebSocketServer
 
   def handle_on_error(ws, error)
     @message_printer.print_message({ box_type: "status", content: "🚫 WebSocket error." }.to_json)
-    @message_printer.print_message({ box_type: "status", content: "🚫 Error: #{error}" }.to_json)
+    @message_printer.print_message({ box_type: "status", content: "🚫 Error: #{error.message}" }.to_json)
+    @message_printer.print_message({ box_type: "status", content: "🚫 Backtrace: #{error.backtrace.join("\n")}" }.to_json)
     ws.close
   end
 end

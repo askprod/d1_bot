@@ -77,6 +77,8 @@ class GlobalConfig
     if choice_to_boolean.eql? true
       prompt_auto_rally
       prompt_claim_speed
+      prompt_claim_ole
+      prompt_claim_gems
       prompt_websocket_port
       prompt_browser_choice
       set_browser_config
@@ -117,13 +119,27 @@ class GlobalConfig
   def prompt_claim_speed
     puts "\n"
     puts "Available claim speeds: "
-    puts "  1. #{'Slow'.colorize(:green)} (500ms)"
-    puts "  2. #{'Correct'.colorize(:yellow)} (250ms)"
-    puts "  3. #{'Blazing Fast'.colorize(:red)} (< 100ms)"
+    puts "  1. #{'Slow'.colorize(:green)} (~500ms)"
+    puts "  2. #{'Correct'.colorize(:yellow)} (~250ms)"
+    puts "  3. #{'Blazing Fast'.colorize(:red)} (~100ms)"
     puts "\n"
     print "At what speed would you like to claim airdops when they appear? (the slower the less obvious): "
     parse_toggle_choice(:prompt_claim_speed, possible_choices: ["1", "2", "3"])
     @config["claim_speed"] = choice_to_speed
+  end
+
+  def prompt_claim_ole
+    puts "\n"
+    puts "Would you like to auto claim $OLE? (y/n): "
+    parse_toggle_choice(:prompt_claim_ole)
+    @config["should_claim_ole"] = choice_to_boolean
+  end
+
+  def prompt_claim_gems
+    puts "\n"
+    puts "Would you like to auto claim $GEMS? (y/n): "
+    parse_toggle_choice(:prompt_claim_gems)
+    @config["should_claim_gems"] = choice_to_boolean
   end
 
   def prompt_websocket_port
@@ -198,9 +214,9 @@ class GlobalConfig
   def choice_to_speed
     puts @choice
     {
-      1 => "80",
+      1 => "500",
       2 => "250",
-      3 => "500"
+      3 => "50"
     }[@choice.to_i]
   end
 

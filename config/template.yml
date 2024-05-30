@@ -1,5 +1,7 @@
 auto_rally: true
 auto_vote: false
+should_claim_ole: false
+should_claim_gems: true
 claim_speed: "250"
 websocket_port: "8080"
 browser_choice: firefox
