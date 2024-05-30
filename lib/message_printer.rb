@@ -104,7 +104,7 @@ class MessagePrinter
       [].tap do |arr|
         arr << { text: "#{@data[:time]} | ", color: time_color }
         arr << { text: "#{name}", color: name_color }
-        arr << { text: " | #{content}", color: 7 } unless content.empty?
+        arr << { text: " | #{content}", color: 7 } unless (content || "").empty?
       end
     )
   end
