@@ -126,10 +126,14 @@ const canClickAirdrop = (node_details, config, websocket) => {
 }
 
 const clickAirdrop = (node, speed) => {
-  setTimeout(() => {
-    console.log("Clicked on node", node.querySelector(".airdrop")); // Debug
-    node.querySelector(".airdrop").click();
-  }, getRandomSleepDuration(speed));
+  click_zone = node.querySelector(".airdrop");
+
+  if(click_zone) {
+    setTimeout(() => {
+      click_zone.click();
+      console.log("Clicked on zone", zone); // Debug
+    }, getRandomSleepDuration(speed));
+  }
 }
 
 const performAirdropClicks = (node, speed) => {
