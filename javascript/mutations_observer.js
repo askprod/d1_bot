@@ -136,13 +136,6 @@ const clickAirdrop = (node, speed) => {
   }
 }
 
-const performAirdropClicks = (node, speed) => {
-  const clickTimes = Math.floor(Math.random() * (8 - 3 + 1)) + 3;
-  for (let i = 0; i < clickTimes; i++) {
-    clickAirdrop(node, speed);
-  }
-};
-
 const sendAirdropMessage = (node, node_details, websocket) => {
   data = {};
   data.id = node_details.id;
@@ -225,7 +218,7 @@ const initializeObserver = (chatContainer, websocket, config) => {
               sendAirdropMessage(node, node_details, websocket)
               if(canClickAirdrop(node_details, config, websocket)) {
                 console.log("Entered canClickAidrop condition") // Debug
-                performAirdropClicks(node, config.speed);
+                clickAirdrop(node, config.speed);
                 checkClaim(node, node_details, websocket);
               }
             } else {
