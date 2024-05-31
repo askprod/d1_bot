@@ -127,10 +127,17 @@ const canClickAirdrop = (node_details, config, websocket) => {
 
 const clickAirdrop = (node, speed) => {
   setTimeout(() => {
+    console.log("Clicked on node", node.querySelector(".airdrop")); // Debug
     node.querySelector(".airdrop").click();
-    console.log("Clicked on node", node); // Debug
   }, getRandomSleepDuration(speed));
 }
+
+const performAirdropClicks = (node, speed) => {
+  const clickTimes = Math.floor(Math.random() * (8 - 3 + 1)) + 3;
+  for (let i = 0; i < clickTimes; i++) {
+    clickAirdrop(node, speed);
+  }
+};
 
 const sendAirdropMessage = (node, node_details, websocket) => {
   data = {};
@@ -144,9 +151,9 @@ const sendAirdropMessage = (node, node_details, websocket) => {
 }
 
 const checkClaim = (node, node_details, websocket) => {
-  console.log("Entered checkClaim", node); // Debug
+  console.log("Entered checkClaim"); // Debug
   console.log("checkClaim node", node); // Debug
-  console.log("checkClaim node_details", node); // Debug
+  console.log("checkClaim node_details", node_details); // Debug
   let checkTimeOut;
   let amount_claimed = 0;
 
@@ -210,11 +217,11 @@ const initializeObserver = (chatContainer, websocket, config) => {
             setNodeDetails(node, node_details);
 
             if(nodeIsAirdrop(node_details)) {
-              console.log("nodeIsAirdrop", node_details); // Debug
+              console.log("nodeIsAirdrop node_details", node_details); // Debug
               sendAirdropMessage(node, node_details, websocket)
               if(canClickAirdrop(node_details, config, websocket)) {
-                console.log("Entered canClickAidrop condition")
-                clickAirdrop(node, config.speed);
+                console.log("Entered canClickAidrop condition") // Debug
+                performAirdropClicks(node, config.speed);
                 checkClaim(node, node_details, websocket);
               }
             } else {
