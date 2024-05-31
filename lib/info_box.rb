@@ -28,7 +28,7 @@ class InfoBox < BaseBox
     @values = {
       # Col 1
       space_name: "N/A",
-      global_claim_enabled: "N/A",
+      global_claim_enabled: Driver::CLAIM_AIRDROPS_STARTING_STATUS ? "ENABLED" : "FALSE",
       claimed_ole: @config["should_claim_ole"] ? 0 : "DISABLED",
       claimed_gems: @config["should_claim_gems"] ? 0 : "DISABLED",
       # Col 2
@@ -39,7 +39,7 @@ class InfoBox < BaseBox
       app_started_at: Time.now.strftime("%d/%m %I:%M %p"),
       total_uptime: 0,
       config_info: "Autorally: #{@config["auto_rally"] ? "ENABLED" : "DISABLED"} | WSPort: #{@config["websocket_port"]}",
-      claim_disable_in: "N/A",
+      claim_disable_in: (Driver::CLAIM_AIRDROPS_DISABLE_TIMER / 60).to_i.to_s,
     }
   end
 
@@ -55,7 +55,7 @@ class InfoBox < BaseBox
     # Define the zones
     left_zone = [
       "Current space: #{@values[:space_name]}",
-      "Claiming state: #{@values[:global_claim_enabled]}",
+      "Auto claiming: #{@values[:global_claim_enabled]}",
       "🔮 Claimed $OLE: #{@values[:claimed_ole]}",
       "💎 Claimed $GEMS: #{@values[:claimed_gems]}"
     ]
@@ -69,7 +69,7 @@ class InfoBox < BaseBox
     right_zone = [
       "Started at: #{@values[:app_started_at]} | Uptime: #{@values[:total_uptime]} min",
       @values[:config_info],
-      "Claim disabled in: ~#{@values[:claim_disable_in]} min"
+      "Auto claiming disabled in #{@values[:claim_disable_in]} min if no rally"
     ]
 
     # Set zone width

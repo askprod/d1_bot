@@ -39,9 +39,9 @@ class MessagePrinter
       )
     when "host_airdrop"
       add_chat_box_message(
-        name: "##{@data[:id]} | 💎💎💎💎💎 #{@data[:amount]} $GEMS FROM HOST 💎💎💎💎💎",
-        name_color: 6,
-        time_color: 6
+        name: "##{@data[:id]} | 💎💎💎💎💎 #{@data[:amount]} $GEMS FROM HOST AIRDROP 💎💎💎💎💎",
+        name_color: 2,
+        time_color: 2
       )
     when "gift"
       add_chat_box_message(
@@ -50,8 +50,6 @@ class MessagePrinter
         time_color: 4
       )
     when "user_message"
-      add_chat_box_message
-    else
       add_chat_box_message
     end
   end

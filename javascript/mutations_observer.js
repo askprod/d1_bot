@@ -26,8 +26,8 @@ const setNodeDetails = (node, node_details) => {
   node_details.id = getIdFromNode(node);
   node_details.box_type = "chat";
   node_details.type = getNodeType(node);
-  node_details.name = nameMsg;
   node_details.content = contentText;
+  node_details.name = nameMsg;
   node_details.time = timeMsg;
 };
 
@@ -38,26 +38,25 @@ const getIdFromNode = (node) => {
 }
 
 const getNodeType = (node) => {
-  let nodeType = "";
   const airdropDiv = node.querySelector(".airdrop");
-  const nameNode = node.querySelector('.name');
-  const nameMsg = nameNode ? nameNode.innerText.trim() : "";
 
-  if (airdropDiv) {
-    if (nameMsg === "Gems Deliver") {
-      nodeType = "rally_airdrop";
-    } else if (nameMsg === "OLE Deliver") {
-      nodeType = "ole_airdrop";
-    } else if (node.querySelector('.airdrop')) {
-      nodeType = "host_airdrop";
-    }
-  } else if (node.querySelector(".css-11b3811")) {
-    nodeType = "gift";
-  } else {
-    nodeType = "user_message";
+  if(airdropDiv && airdropDiv.innerText.includes("for Rally")) {
+    return "rally_airdrop";
   }
 
-  return nodeType;
+  if(airdropDiv && airdropDiv.innerText.includes("OLE Airdrop")) {
+    return "ole_airdrop";
+  }
+
+  if(airdropDiv && airdropDiv.innerText.includes("from Host")) {
+    return "host_airdrop";
+  }
+
+  if(node.querySelector(".css-11b3811")) {
+    return "gift";
+  }
+
+  return "user_message";
 }
 
 const getCurrencyFromType = (node_details) => {
@@ -138,6 +137,7 @@ const sendAirdropMessage = (node, node_details, websocket) => {
   data.id = node_details.id;
   data.box_type = node_details.box_type;
   data.type = node_details.type;
+  data.time = node_details.time;
   data.currency = getCurrencyFromType(node_details);
   data.claim_amount = getAirdropAmount(node);
   websocket.send(JSON.stringify(data));

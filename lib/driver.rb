@@ -1,10 +1,11 @@
 class Driver
-  DISTRICT_ONE_MAIN_URL         = "https://districtone.io".freeze
-  JS_PATH                       = "./javascript".freeze
-  SELENIUM_WAIT_TIMEOUT         = 60.freeze # 1 minute
-  AUTO_RALLY_TIMER              = 600.freeze # 10 minutes
-  DRIVER_REFRESH_TIMER          = 3600.freeze # 1 hour
-  CLAIM_AIRDROPS_DISABLE_TIMER  = 7200.freeze # 2 hours
+  DISTRICT_ONE_MAIN_URL           = "https://districtone.io".freeze
+  JS_PATH                         = "./javascript".freeze
+  SELENIUM_WAIT_TIMEOUT           = 60.freeze # 1 minute
+  AUTO_RALLY_TIMER                = 600.freeze # 10 minutes
+  DRIVER_REFRESH_TIMER            = 3600.freeze # 1 hour
+  CLAIM_AIRDROPS_DISABLE_TIMER    = 14400.freeze # 4 hours
+  CLAIM_AIRDROPS_STARTING_STATUS  = true.freeze
 
   def initialize(browser, config)
     @browser = browser
@@ -13,8 +14,8 @@ class Driver
     @browser_initialized = false
     @shutdown_mutex = Mutex.new
     @print_status_mutex = Mutex.new
-    @last_rally_at = (Time.now + CLAIM_AIRDROPS_DISABLE_TIMER) # Inital timeout for script to run for 2 hours
-    @claim_airdrops = true
+    @last_rally_at = Time.now
+    @claim_airdrops = CLAIM_AIRDROPS_STARTING_STATUS
     reset_flags
   end
 
@@ -118,8 +119,6 @@ class Driver
 
     @threads << Thread.new do
       loop do
-        toggle_claim_airdrop_status
-
         if can_auto_rally?
           check_auto_rally
         else
@@ -141,6 +140,7 @@ class Driver
       loop do
         sleep(60)
         update_uptime
+        update_claim_airdrop_status
         update_claim_disabled_in
       end
     end
@@ -240,15 +240,7 @@ class Driver
   end
 
   def update_claim_disabled_in
-    # TODO pass time_to_message in helper class ?
-    @info_box.update_value(
-      :claim_disable_in,
-      @message_printer.time_to_message(
-        # Pass in future same time helper class
-        # offset - Time.now
-        (((@last_rally_at - Time.now).to_i) / 60).to_i
-      )
-    )
+    @info_box.update_value(:claim_disable_in, calc_last_rally_timeleft)
   end
 
   def print_status_message(content)
@@ -298,25 +290,46 @@ class Driver
     @websocket_initialized
   end
 
-  def should_disable_claim_airdrops_status?
-    @last_rally_at > (Time.now + CLAIM_AIRDROPS_DISABLE_TIMER)
+  def claim_airdrop_status_should_be_disabled?
+    @claim_airdrops.eql?(true) &&
+    Time.now > (@last_rally_at + CLAIM_AIRDROPS_DISABLE_TIMER)
   end
 
-  def should_enable_claim_airdrop_status?
-    @last_rally_at < (Time.now + CLAIM_AIRDROPS_DISABLE_TIMER)
+  def claim_airdrop_status_should_be_enabled?
+    @claim_airdrops.eql?(false) &&
+    Time.now < (@last_rally_at + CLAIM_AIRDROPS_DISABLE_TIMER)
   end
 
-  def toggle_claim_airdrop_status
-    if should_disable_claim_airdrops_status?
-      @claim_airdrops = false
-      @driver.execute_script("window.observerState.updateShouldClickAirdrops(arguments[0]);", @claim_airdrops)
-      print_status_message("🚫 Automatic claims are disabled.")
-    elsif should_enable_claim_airdrop_status?
-      @claim_airdrops = true
-      @driver.execute_script("window.observerState.updateShouldClickAirdrops(arguments[0]);", @claim_airdrops)
-      print_status_message("✅ Automatic claims are enabled.")
+  def update_claim_airdrop_status
+    value_changed = false
+
+    if claim_airdrop_status_should_be_disabled?
+      disable_claim_airdrops
+      value_changed = true
+    elsif claim_airdrop_status_should_be_enabled?
+      enable_claim_airdrops
+      value_changed = true
     end
 
-    @info_box.update_value(:global_claim_enabled, @claim_airdrops ? "ENABLED" : "DISABLED")
+    if value_changed
+      @info_box.update_value(:global_claim_enabled, @claim_airdrops ? "ENABLED" : "DISABLED")
+    end
+  end
+
+  def enable_claim_airdrops
+    @claim_airdrops = true
+    @driver.execute_script("window.observerState.updateShouldClickAirdrops(arguments[0]);", @claim_airdrops)
+    print_status_message("✅ Automatic claims are enabled.")
+  end
+
+  def disable_claim_airdrops
+    @claim_airdrops = false
+    @driver.execute_script("window.observerState.updateShouldClickAirdrops(arguments[0]);", @claim_airdrops)
+    print_status_message("🚫 Automatic claims are disabled.")
+  end
+
+  def calc_last_rally_timeleft
+    timeleft = ((((@last_rally_at + CLAIM_AIRDROPS_DISABLE_TIMER) - Time.now).to_i) / 60).to_i
+    timeleft.positive? ? timeleft : 0
   end
 end
