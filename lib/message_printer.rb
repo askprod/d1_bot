@@ -27,19 +27,19 @@ class MessagePrinter
     case @data[:type]
     when "rally_airdrop"
       add_chat_box_message(
-        name: "##{@data[:id]} | 💎💎💎💎💎 #{@data[:amount]} $GEMS FROM RALLY 💎💎💎💎💎",
+        name: "##{@data[:id]} | 💎💎💎💎💎 #{@data[:airdrop_amount]} $GEMS FROM RALLY 💎💎💎💎💎",
         name_color: 6,
         time_color: 6
       )
     when "ole_airdrop"
       add_chat_box_message(
-        name: "##{@data[:id]} | 🔮🔮🔮🔮🔮 #{@data[:amount]} $OLE 🔮🔮🔮🔮🔮",
+        name: "##{@data[:id]} | 🔮🔮🔮🔮🔮 #{@data[:airdrop_amount]} $OLE 🔮🔮🔮🔮🔮",
         name_color: 5,
         time_color: 5
       )
     when "host_airdrop"
       add_chat_box_message(
-        name: "##{@data[:id]} | 💎💎💎💎💎 #{@data[:amount]} $GEMS FROM HOST AIRDROP 💎💎💎💎💎",
+        name: "##{@data[:id]} | 💎💎💎💎💎 #{@data[:airdrop_amount]} $GEMS FROM HOST AIRDROP 💎💎💎💎💎",
         name_color: 2,
         time_color: 2
       )

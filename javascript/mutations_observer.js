@@ -23,9 +23,15 @@ const setNodeDetails = (node, node_details) => {
   const nameMsg = nameNode ? nameNode.innerText.trim() : "";
   const timeMsg = timeNode ? timeNode.innerText.trim() : "";
 
-  node_details.id = getIdFromNode(node);
-  node_details.box_type = "chat";
-  node_details.type = getNodeType(node);
+  const id = getIdFromNode(node);
+  const type = getNodeType(node);
+  const currency = getCurrencyFromType(type);
+  const airdrop_amount = getAirdropAmount(node);
+
+  node_details.id = id;
+  node_details.type = type;
+  node_details.airdrop_amount = airdrop_amount;
+  node_details.currency = currency;
   node_details.content = contentText;
   node_details.name = nameMsg;
   node_details.time = timeMsg;
@@ -59,22 +65,24 @@ const getNodeType = (node) => {
   return "user_message";
 }
 
-const getCurrencyFromType = (node_details) => {
+const getCurrencyFromType = (type) => {
   let currency = "";
-  if(node_details.type == "ole_airdrop") { currency = "OLE" }
-  if(node_details.type == "rally_airdrop") { currency = "GEMS" }
-  if(node_details.type == "host_airdrop") { currency = "GEMS" }
+  if(type == "ole_airdrop") { currency = "OLE" }
+  if(type == "rally_airdrop") { currency = "GEMS" }
+  if(type == "host_airdrop") { currency = "GEMS" }
   return currency;
 }
 
 const getRandomSleepDuration = (ms) => {
   const min = ms * 0.8;
   const max = ms * 2;
-  return parseInt(Math.random() * (max - min) + min);
+  return Math.floor(Math.random() * (max - min) + min); // Use Math.floor to ensure the result is an integer
 }
 
 const getAirdropAmount = (node) => {
-  const innerText = node.querySelector(".airdrop").innerText;
+  const airdropDiv = node.querySelector(".airdrop");
+  if (!airdropDiv) { return ""; }
+  const innerText = airdropDiv.innerText;
   const regex = /\d{1,3}(?:,\d{3})*(?:\.\d+)?/;
   const match = innerText.match(regex);
   return match ? parseFloat(match[0].replace(/,/g, '')) : "";
@@ -126,24 +134,39 @@ const canClickAirdrop = (node_details, config, websocket) => {
 }
 
 const clickAirdrop = (node, speed) => {
-  click_zone = node.querySelector(".airdrop");
+  const click_zone = node.querySelector(".airdrop");
+  const click_speed = getRandomSleepDuration(speed);
+  console.log("speed", speed); // Debug
+  console.log("after getRandom speed", click_speed); // Debug
 
   if(click_zone) {
     setTimeout(() => {
       click_zone.click();
-      console.log("Clicked on zone", zone); // Debug
-    }, getRandomSleepDuration(speed));
+      console.log("Clicked on zone", click_zone); // Debug
+    }, click_speed);
   }
 }
 
-const sendAirdropMessage = (node, node_details, websocket) => {
-  data = {};
-  data.id = node_details.id;
-  data.box_type = node_details.box_type;
-  data.type = node_details.type;
-  data.time = node_details.time;
-  data.currency = getCurrencyFromType(node_details);
-  data.claim_amount = getAirdropAmount(node);
+const sendAirdropChatMessage = (node_details, websocket) => {
+  let data            = {};
+  data.id             = node_details.id;
+  data.box_type       = "chat";
+  data.type           = node_details.type;
+  data.time           = node_details.time;
+  data.currency       = node_details.currency;
+  data.airdrop_amount = node_details.airdrop_amount;
+
+  websocket.send(JSON.stringify(data));
+}
+
+const sendAirdropStatusAttempt = (node_details, websocket) => {
+  let data            = {};
+  data.id             = node_details.id;
+  data.box_type       = "status";
+  data.type           = "claim_attempt";
+  data.currency       = node_details.currency;
+  data.airdrop_amount = node_details.airdrop_amount;
+
   websocket.send(JSON.stringify(data));
 }
 
@@ -162,18 +185,20 @@ const checkClaim = (node, node_details, websocket) => {
     if (match && match[1] !== "0") {
       amount_claimed = parseInt(match[1].replace(/,/g, ''));
       clearTimeout(checkTimeOut);
-      sendResult(node_details, amount_claimed);
+      sendAirdropStatusClaimResult(node_details, amount_claimed);
       claimedSpan.removeEventListener('DOMSubtreeModified', checkClaimAmount);
     }
   }
 
-  const sendResult = (node_details, amount_claimed) => {
-    let data = {};
-    data.id = node_details.id;
-    data.box_type = node_details.box_type;
-    data.type = node_details.type;
-    data.currency = node_details.currency;
+  const sendAirdropStatusClaimResult = (node_details, amount_claimed) => {
+    let data            = {};
+    data.id             = node_details.id;
+    data.box_type       = "status";
+    data.type           = "claim_result";
+    data.currency       = node_details.currency;
     data.amount_claimed = parseInt(amount_claimed);
+
+    console.log("sendAirdropStatusClaimResult data", data); // Debug
     websocket.send(JSON.stringify(data));
   };
 
@@ -181,7 +206,7 @@ const checkClaim = (node, node_details, websocket) => {
   node.addEventListener('DOMSubtreeModified', checkClaimAmount);
 
   checkTimeOut = setTimeout(() => {
-    sendResult(node_details, "0");
+    sendAirdropStatusClaimResult(node_details, "0");
     node.removeEventListener('DOMSubtreeModified', checkClaimAmount);
   }, 15000);
 }
@@ -189,10 +214,6 @@ const checkClaim = (node, node_details, websocket) => {
 // Initialize observer
 const initializeObserver = (chatContainer, websocket, config) => {
   let lastIndex = -1; // Initialize last index variable
-
-  const sendMessage = (message) => {
-    websocket.send(JSON.stringify({ box_type: "status", content: message }));
-  };
 
   const scrollContainer = chatContainer.parentElement.parentElement;
 
@@ -215,13 +236,16 @@ const initializeObserver = (chatContainer, websocket, config) => {
 
             if(nodeIsAirdrop(node_details)) {
               console.log("nodeIsAirdrop node_details", node_details); // Debug
-              sendAirdropMessage(node, node_details, websocket)
+              sendAirdropChatMessage(node_details, websocket)
               if(canClickAirdrop(node_details, config, websocket)) {
                 console.log("Entered canClickAidrop condition") // Debug
-                clickAirdrop(node, config.speed);
+                console.log("canClickAidrop config", config) // Debug
+                clickAirdrop(node, config.claim_speed);
+                sendAirdropStatusAttempt(node_details, websocket);
                 checkClaim(node, node_details, websocket);
               }
             } else {
+              node_details.box_type = "chat";
               websocket.send(JSON.stringify(node_details));
             }
           }
@@ -231,7 +255,10 @@ const initializeObserver = (chatContainer, websocket, config) => {
   };
 
   const startAndObserve = () => {
-    sendMessage("👀 Mutation observer started successfully. Refresh will occur every 30 minutes.");
+    websocket.send(JSON.stringify({
+      box_type: "status",
+      content: "👀 Mutation observer started successfully. Refresh will occur every 30 minutes."
+    }));
     observer.observe(chatContainer, { childList: true, subtree: true });
   };
 
@@ -239,7 +266,10 @@ const initializeObserver = (chatContainer, websocket, config) => {
   startAndObserve();
 
   setInterval(() => {
-    sendMessage("🔄 Refreshing mutation observer...");
+    websocket.send(JSON.stringify({
+      box_type: "status",
+      content: "🔄 Refreshing mutation observer..."
+    }));
     observer.disconnect();
     startAndObserve();
   }, 1800000);
